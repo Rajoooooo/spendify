@@ -14,15 +14,17 @@ class ExpenseController extends Controller
         $expenses = Expense::with('category')
             ->latest('date')->latest('id')->take(200)->get()
             ->map(fn ($e) => [
-                'id'          => $e->id,
-                'date'        => $e->date->toDateString(),
-                'description' => $e->description,
-                'category'    => $e->category?->name,
-                'amount'      => (float) $e->amount,
+                'id'              => $e->id,
+                'date'            => $e->date->toDateString(),
+                'description'     => $e->description,
+                'category'        => $e->category?->name,
+                'category_color'  => $e->category?->color,   // ← add color
+                'amount'          => (float) $e->amount,
             ]);
 
         $categories = Category::where('archived', false)
-            ->orderBy('name')->get(['id','name','color']);
+            ->orderBy('name')
+            ->get(['id','name','color']); // used by the modal
 
         return Inertia::render('Expense/index', [
             'expenses'   => $expenses,
@@ -40,6 +42,8 @@ class ExpenseController extends Controller
         ]);
 
         Expense::create($data);
+
+        // Inertia will refresh the page data on redirect back.
         return back()->with('success', 'Expense added.');
     }
 
