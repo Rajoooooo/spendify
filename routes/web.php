@@ -5,16 +5,12 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use App\Http\Controllers\ExpenseController;
 
-Route::get('/', function () {
-    return Inertia::render('welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
-})->name('home');
+Route::get('/', fn () => Inertia::render('welcome', [
+    'canRegister' => Features::enabled(Features::registration()),
+]))->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
 
     Route::prefix('expense')->name('expense.')->group(function () {
         Route::get('/', [ExpenseController::class, 'index'])->name('index');
@@ -27,9 +23,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/category/{category}', [ExpenseController::class, 'updateCategory'])->name('category.update');
         Route::delete('/category/{category}', [ExpenseController::class, 'destroyCategory'])->name('category.destroy');
 
-        // NEW: JSON list for the viewer modal
+        Route::put('/category/{category}/archive',   [ExpenseController::class, 'archiveCategory'])->name('category.archive');
+        Route::put('/category/{category}/unarchive', [ExpenseController::class, 'unarchiveCategory'])->name('category.unarchive');
         Route::get('/categories', [ExpenseController::class, 'categories'])->name('category.index');
     });
 });
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

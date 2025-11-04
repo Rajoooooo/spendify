@@ -7,7 +7,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
-    protected $fillable = ['name', 'color'];
+    // ⬇️ add 'archived' and (optional) cast
+    protected $fillable = ['name', 'color', 'archived'];
+
+    protected $casts = [
+        'archived' => 'boolean',
+    ];
 
     public function expenses(): HasMany
     {

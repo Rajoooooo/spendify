@@ -12,8 +12,7 @@ class ExpenseController extends Controller
     public function index()
     {
         $expenses = Expense::with('category')
-            ->latest('date')->latest('id')
-            ->take(200)->get()
+            ->latest('date')->latest('id')->take(200)->get()
             ->map(fn ($e) => [
                 'id'          => $e->id,
                 'date'        => $e->date->toDateString(),
@@ -22,7 +21,8 @@ class ExpenseController extends Controller
                 'amount'      => (float) $e->amount,
             ]);
 
-        $categories = Category::orderBy('name')->get(['id','name','color']);
+        $categories = Category::where('archived', false)
+            ->orderBy('name')->get(['id','name','color']);
 
         return Inertia::render('Expense/index', [
             'expenses'   => $expenses,
@@ -54,11 +54,56 @@ class ExpenseController extends Controller
         return back()->with('success', 'Category added.');
     }
 
-    // NEW: JSON for modal
-    public function categories()
+    public function updateCategory(Request $request, Category $category)
     {
-        return response()->json(
-            Category::orderBy('name')->get(['id', 'name', 'color'])
-        );
+        $data = $request->validate([
+            'name'  => ['required','string','max:80','unique:categories,name,'.$category->id],
+            'color' => ['nullable','string','max:16'],
+        ]);
+
+        $category->update($data);
+        // for XHR
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+        return back()->with('success', 'Category updated.');
     }
+
+    public function archiveCategory(Request $request, Category $category)
+    {
+        $category->update(['archived' => true]);
+
+        // for XHR
+        return response()->json(['ok' => true]);
+    }
+
+    public function unarchiveCategory(Request $request, Category $category)
+    {
+        $category->update(['archived' => false]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    // GET /expense/categories?archived=1
+    public function categories(Request $request)
+    {
+        $archived = $request->boolean('archived');
+        $rows = Category::query()
+            ->when($archived, fn($q) => $q->where('archived', true),
+                           fn($q) => $q->where('archived', false))
+            ->orderBy('name')
+            ->get(['id','name','color','archived']);
+
+        return response()->json($rows);
+    }
+
+    // Optional clean-up endpoints; already present in your routes
+    public function destroyCategory(Category $category)
+    {
+        $category->delete();
+        return back()->with('success', 'Category removed.');
+    }
+
+    public function updateExpense(Request $request, Expense $expense) {}
+    public function destroyExpense(Expense $expense) {}
 }
