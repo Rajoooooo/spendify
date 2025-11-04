@@ -18,13 +18,13 @@ class ExpenseController extends Controller
                 'date'            => $e->date->toDateString(),
                 'description'     => $e->description,
                 'category'        => $e->category?->name,
-                'category_color'  => $e->category?->color,   // ← add color
+                'category_color'  => $e->category?->color,
                 'amount'          => (float) $e->amount,
             ]);
 
         $categories = Category::where('archived', false)
             ->orderBy('name')
-            ->get(['id','name','color']); // used by the modal
+            ->get(['id','name','color']);
 
         return Inertia::render('Expense/index', [
             'expenses'   => $expenses,
@@ -42,9 +42,35 @@ class ExpenseController extends Controller
         ]);
 
         Expense::create($data);
-
-        // Inertia will refresh the page data on redirect back.
         return back()->with('success', 'Expense added.');
+    }
+
+    public function updateExpense(Request $request, Expense $expense)
+    {
+        $data = $request->validate([
+            'date'        => ['required','date'],
+            'description' => ['required','string','max:255'],
+            'amount'      => ['required','numeric','min:0'],
+            'category_id' => ['nullable','exists:categories,id'],
+        ]);
+
+        $expense->update($data);
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+        return back()->with('success', 'Expense updated.');
+    }
+
+    public function destroyExpense(Request $request, Expense $expense)
+    {
+        // hard delete
+        $expense->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+        return back()->with('success', 'Expense deleted.');
     }
 
     public function storeCategory(Request $request)
@@ -66,7 +92,7 @@ class ExpenseController extends Controller
         ]);
 
         $category->update($data);
-        // for XHR
+
         if ($request->expectsJson()) {
             return response()->json(['ok' => true]);
         }
@@ -76,19 +102,15 @@ class ExpenseController extends Controller
     public function archiveCategory(Request $request, Category $category)
     {
         $category->update(['archived' => true]);
-
-        // for XHR
         return response()->json(['ok' => true]);
     }
 
     public function unarchiveCategory(Request $request, Category $category)
     {
         $category->update(['archived' => false]);
-
         return response()->json(['ok' => true]);
     }
 
-    // GET /expense/categories?archived=1
     public function categories(Request $request)
     {
         $archived = $request->boolean('archived');
@@ -101,13 +123,9 @@ class ExpenseController extends Controller
         return response()->json($rows);
     }
 
-    // Optional clean-up endpoints; already present in your routes
     public function destroyCategory(Category $category)
     {
         $category->delete();
         return back()->with('success', 'Category removed.');
     }
-
-    public function updateExpense(Request $request, Expense $expense) {}
-    public function destroyExpense(Expense $expense) {}
 }

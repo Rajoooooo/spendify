@@ -15,10 +15,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('expense')->name('expense.')->group(function () {
         Route::get('/', [ExpenseController::class, 'index'])->name('index');
 
+        // Expense CRUD (hard delete)
         Route::post('/', [ExpenseController::class, 'storeExpense'])->name('store');
         Route::put('/{expense}', [ExpenseController::class, 'updateExpense'])->name('update');
         Route::delete('/{expense}', [ExpenseController::class, 'destroyExpense'])->name('destroy');
 
+        // Categories + archive
         Route::post('/category', [ExpenseController::class, 'storeCategory'])->name('category.store');
         Route::put('/category/{category}', [ExpenseController::class, 'updateCategory'])->name('category.update');
         Route::delete('/category/{category}', [ExpenseController::class, 'destroyCategory'])->name('category.destroy');

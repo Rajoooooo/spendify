@@ -1,3 +1,4 @@
+// resources/js/components/expense/ExpenseTable.tsx
 import * as React from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,16 +14,15 @@ import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 export type ExpenseRow = {
   id: number | string;
-  date: string;                 // YYYY-MM-DD
+  date: string; // YYYY-MM-DD
   description: string;
   category?: string | null;
   category_color?: string | null;
   amount: number;
 };
 
-// Safe formatter for YYYY-MM-DD -> "November 10, 2025"
+// Format "YYYY-MM-DD" safely as long date
 function fmtLongDate(isoDate: string) {
-  // Avoid timezone shift by forcing midnight
   const d = new Date(`${isoDate}T00:00:00`);
   return new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(d);
 }
@@ -52,7 +52,7 @@ export default function ExpenseTable({
 
   return (
     <Card className="overflow-hidden rounded-2xl">
-      {/* small utility bar (no title/header) */}
+      {/* Search bar only (no header) */}
       <div className="flex justify-end p-4">
         <Input
           placeholder="Search description/category..."
@@ -63,7 +63,6 @@ export default function ExpenseTable({
         />
       </div>
 
-      {/* Body */}
       <div className="space-y-2 p-3 sm:p-4 pt-0">
         {loading ? (
           <ul className="space-y-2">
@@ -95,7 +94,7 @@ export default function ExpenseTable({
                 key={r.id}
                 className="group flex items-center justify-between rounded-xl border bg-card/50 p-5 transition hover:bg-muted/40"
               >
-                {/* Left – date + description + category */}
+                {/* Left side: date + description + category */}
                 <div className="flex min-w-0 flex-1 items-start gap-4">
                   <div className="shrink-0 text-sm text-muted-foreground leading-6">
                     {fmtLongDate(r.date)}
@@ -127,7 +126,7 @@ export default function ExpenseTable({
                   </div>
                 </div>
 
-                {/* Right – amount + actions */}
+                {/* Right side: amount + actions */}
                 <div className="ml-3 flex items-center gap-2 sm:gap-3">
                   <div className="text-right text-lg font-semibold tabular-nums">
                     ₱{r.amount.toFixed(2)}
