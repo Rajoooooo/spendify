@@ -10,8 +10,8 @@ export default function BudgetHeader({ budget }: { budget: number | null }) {
           <Wallet className="size-6" />
         </div>
         <div>
-          <h3 className="text-xl font-semibold">Budget Title</h3>
-          <p className="text-sm text-muted-foreground">This is a static field.</p>
+          <h3 className="text-xl font-semibold">Balance Amount</h3>
+          <p className="text-sm text-muted-foreground">Enter your budget here</p>
           <h1 className="text-4xl font-extrabold tracking-tight mt-4">
             {budget !== null ? `₱${budget.toLocaleString()}` : "Set Your Budget"}
           </h1>

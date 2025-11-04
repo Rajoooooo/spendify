@@ -1,7 +1,7 @@
 import * as React from "react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { X } from "lucide-react";
 
 type BudgetLineItemProps = {
@@ -36,10 +36,8 @@ const BudgetLineItem: React.FC<BudgetLineItemProps> = ({
           <Label htmlFor="amount">Amount</Label>
           <Input
             id="amount"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="0.00"
+            type="text"
+            placeholder="e.g., 1000"
             value={amount}
             onChange={(e) => onChangeAmount(e.target.value)}
           />
