@@ -12,6 +12,10 @@ Route::get('/', fn () => Inertia::render('welcome', [
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
 
+    // --- Budget (Hello World) ---
+    Route::get('/budget', fn () => Inertia::render('Budget/index'))->name('budget.index');
+
+    // --- Expense feature ---
     Route::prefix('expense')->name('expense.')->group(function () {
         Route::get('/', [ExpenseController::class, 'index'])->name('index');
 
