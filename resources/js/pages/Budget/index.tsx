@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Head, router } from "@inertiajs/react";
+import { Head, router, usePage } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,19 +10,40 @@ import BudgetLineItem from "@/components/Budget/BudgetLineItem";
 import BudgetTable from "@/components/Budget/BudgetTable";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 type LineItem = { id: string; title: string; amount: string };
 
+interface BudgetPageProps {
+  budgets: {
+    id: number;
+    title: string;
+    amount: number;
+    balance: number;
+    date: string;
+  }[];
+}
+
 export default function Index() {
+  const { budgets } = usePage().props as unknown as BudgetPageProps;
+
   const [items, setItems] = React.useState<LineItem[]>([
     { id: crypto.randomUUID(), title: "", amount: "" },
   ]);
   const [initialBudget, setInitialBudget] = React.useState<number>(0);
   const [budget, setBudget] = React.useState<number>(0);
-  const [modalOpen, setModalOpen] = React.useState(false);
   const [budgetTitle, setBudgetTitle] = React.useState<string>("");
+  const [modalOpen, setModalOpen] = React.useState(false);
   const [successModal, setSuccessModal] = React.useState(false);
+  const [errorModal, setErrorModal] = React.useState(false);
 
+  // --- calculate remaining balance
   const updateBudget = React.useCallback(() => {
     const totalAmount = items.reduce(
       (acc, item) => acc + (parseFloat(item.amount) || 0),
@@ -36,7 +57,10 @@ export default function Index() {
   }, [items, updateBudget]);
 
   function addItem() {
-    setItems((prev) => [...prev, { id: crypto.randomUUID(), title: "", amount: "" }]);
+    setItems((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), title: "", amount: "" },
+    ]);
   }
 
   function removeItem(id: string) {
@@ -47,8 +71,17 @@ export default function Index() {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
   }
 
+  // --- modal handlers
   function onEnterBudget() {
     setModalOpen(true);
+  }
+
+  function handleBudgetSave() {
+    if (!initialBudget || initialBudget <= 0) {
+      setErrorModal(true);
+      return;
+    }
+    setModalOpen(false);
   }
 
   function onSave() {
@@ -57,6 +90,12 @@ export default function Index() {
       0
     );
     const remainingBalance = initialBudget - totalSpent;
+
+    if (!budgetTitle) {
+      setErrorModal(true);
+      return;
+    }
+
     const budgetData = {
       title: budgetTitle,
       amount: initialBudget,
@@ -66,6 +105,7 @@ export default function Index() {
         amount: parseFloat(item.amount) || 0,
       })),
     };
+
     router.post("/budget/store", budgetData, {
       onSuccess: () => {
         setSuccessModal(true);
@@ -75,20 +115,17 @@ export default function Index() {
         setBudgetTitle("");
       },
       onError: () => {
-        alert("Error saving budget, Please Enter Budget Line Items.");
+        setErrorModal(true);
       },
     });
   }
 
+  // --- input handlers
   function handleBudgetChange(e: React.ChangeEvent<HTMLInputElement>) {
     const inputValue = e.target.value.replace(/[^\d.]/g, "");
     const parsedValue = parseFloat(inputValue) || 0;
     setInitialBudget(parsedValue);
     setBudget(parsedValue);
-  }
-
-  function handleBudgetSave() {
-    setModalOpen(false);
   }
 
   function handleBudgetTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -100,23 +137,35 @@ export default function Index() {
     updateItem(id, { amount: sanitized });
   };
 
+  const handleDelete = (item: any) => {
+    if (confirm("Are you sure you want to delete this budget?")) {
+      router.delete(`/budget/${item.id}`);
+    }
+  };
+
   return (
     <AppLayout>
       <Head title="Budget" />
+
       <div className="mx-auto w-full max-w-6xl px-4 py-6">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-4">
             <BudgetHeader budget={budget} />
             <BudgetControls onEnter={onEnterBudget} onSave={onSave} />
           </div>
+
           <Card className="rounded-2xl border bg-card/60 p-5">
             <div className="mb-3">
-              <h2 className="text-lg font-semibold tracking-tight">Line Items</h2>
+              <h2 className="text-lg font-semibold tracking-tight">
+                Line Items
+              </h2>
               <p className="text-sm text-muted-foreground">
                 Add a title and amount for each budget entry.
               </p>
             </div>
-            <div className="grid gap-1.5 mb-4">
+
+            {/* Budget Title under Line Items */}
+            <div className="mb-3">
               <Label htmlFor="budgetTitle">Budget Title</Label>
               <Input
                 id="budgetTitle"
@@ -125,6 +174,7 @@ export default function Index() {
                 onChange={handleBudgetTitleChange}
               />
             </div>
+
             <div className="space-y-3">
               {items.map((item) => (
                 <BudgetLineItem
@@ -137,57 +187,80 @@ export default function Index() {
                 />
               ))}
             </div>
+
             <div className="mt-4 flex justify-end">
               <Button variant="outline" className="gap-2" onClick={addItem}>
-                <Plus className="size-4" />
-                Add field
+                <Plus className="size-4" /> Add field
               </Button>
             </div>
           </Card>
         </div>
+
         <div className="mt-6">
-          <BudgetTable />
+          <BudgetTable items={budgets} onDelete={handleDelete} />
         </div>
       </div>
 
-      {modalOpen && (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black/50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full shadow-lg">
-            <h3 className="text-lg font-semibold">Enter Budget Amount</h3>
-            <input
-              type="text"
-              placeholder="Enter total budget"
-              value={initialBudget === 0 ? "" : initialBudget}
-              onChange={handleBudgetChange}
-              className="mt-4 p-2 w-full border rounded"
-            />
-            <div className="flex justify-end mt-4">
-              <Button onClick={handleBudgetSave}>Save Budget</Button>
-              <Button
-                variant="secondary"
-                className="ml-2"
-                onClick={() => setModalOpen(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* --- Enter Budget Modal (no title input) --- */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enter Budget Amount</DialogTitle>
+          </DialogHeader>
 
-      {successModal && (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black/50">
-          <div className="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm">
-            <h3 className="text-lg font-semibold text-green-600">Success!</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Your budget has been saved successfully.
-            </p>
-            <div className="mt-4">
-              <Button onClick={() => setSuccessModal(false)}>Close</Button>
+          <div className="space-y-4 mt-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="budgetAmountModal">Budget Amount</Label>
+              <Input
+                id="budgetAmountModal"
+                placeholder="Enter initial amount"
+                value={initialBudget || ""}
+                onChange={handleBudgetChange}
+              />
             </div>
           </div>
-        </div>
-      )}
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleBudgetSave}>Save Budget</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- Success Modal --- */}
+      <Dialog open={successModal} onOpenChange={setSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Budget Saved Successfully</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Your budget has been saved successfully in the system.
+          </p>
+          <DialogFooter>
+            <Button onClick={() => setSuccessModal(false)}>OK</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- Error Modal --- */}
+      <Dialog open={errorModal} onOpenChange={setErrorModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Error Saving Budget</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            There was an issue saving your budget. Please check your entries and
+            try again.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setErrorModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

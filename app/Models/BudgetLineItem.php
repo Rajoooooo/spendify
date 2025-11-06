@@ -9,7 +9,12 @@ class BudgetLineItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['budget_id', 'title', 'amount'];
+    protected $fillable = [
+        'budget_id',
+        'Budget_title',
+        'Item_title',
+        'amount'
+    ];
 
     public function budget()
     {

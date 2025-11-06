@@ -13,10 +13,11 @@ Route::get('/', fn () => Inertia::render('welcome', [
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
 
-    Route::prefix('budget')->name('budget.')->group(function () {
+     Route::prefix('budget')->name('budget.')->group(function () {
         Route::get('/', [BudgetController::class, 'index'])->name('index');
         Route::post('/store', [BudgetController::class, 'store'])->name('store');
         Route::get('/{budget}', [BudgetController::class, 'show'])->name('show');
+        Route::delete('/{budget}', [BudgetController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('expense')->name('expense.')->group(function () {
