@@ -20,19 +20,30 @@ import {
 
 // Modals
 import ViewBudgetModal from "@/components/modal/ViewBudgetModal";
-import EditBudgetModal from "@/components/modal/EditBudgetModal";
+import EditBudgetModal, {
+  type EditBudgetPayload,
+} from "@/components/modal/EditBudgetModal";
 
 type LineItem = { id: string; title: string; amount: string };
 
+interface BudgetLineItemDto {
+  id: number;
+  Item_title: string;
+  amount: number;
+}
+
+interface BudgetDto {
+  id: number;
+  title: string;
+  budget_title?: string;
+  amount: number;
+  balance: number;
+  date: string;
+  lineItems: BudgetLineItemDto[];
+}
+
 interface BudgetPageProps {
-  budgets: {
-    id: number;
-    title: string;
-    amount: number;
-    balance: number;
-    date: string;
-    lineItems?: any[];
-  }[];
+  budgets: BudgetDto[];
 }
 
 export default function Index() {
@@ -49,12 +60,20 @@ export default function Index() {
   const [successModal, setSuccessModal] = React.useState(false);
   const [errorModal, setErrorModal] = React.useState(false);
 
+  // NEW: update success modal
+  const [updateSuccessModal, setUpdateSuccessModal] = React.useState(false);
+
   // VIEW + EDIT MODALS
   const [viewModalOpen, setViewModalOpen] = React.useState(false);
   const [editModalOpen, setEditModalOpen] = React.useState(false);
-  const [selectedBudget, setSelectedBudget] = React.useState<any>(null);
+  const [selectedBudget, setSelectedBudget] =
+    React.useState<BudgetDto | null>(null);
 
-  // --- calculate remaining balance
+  // NEW: delete confirmation modal
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+  const [budgetToDelete, setBudgetToDelete] =
+    React.useState<BudgetDto | null>(null);
+
   const updateBudget = React.useCallback(() => {
     const totalAmount = items.reduce(
       (acc, item) => acc + (parseFloat(item.amount) || 0),
@@ -82,7 +101,6 @@ export default function Index() {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
   }
 
-  // Modal handlers
   function onEnterBudget() {
     setModalOpen(true);
   }
@@ -95,6 +113,7 @@ export default function Index() {
     setModalOpen(false);
   }
 
+  // CREATE NEW BUDGET
   function onSave() {
     const totalSpent = items.reduce(
       (acc, item) => acc + (parseFloat(item.amount) || 0),
@@ -147,35 +166,51 @@ export default function Index() {
     updateItem(id, { amount: sanitized });
   };
 
-  const handleDelete = (item: any) => {
-    if (confirm("Are you sure you want to delete this budget?")) {
-      router.delete(`/budget/${item.id}`);
-    }
+  // OPEN delete confirmation modal
+  const handleDelete = (item: BudgetDto) => {
+    setBudgetToDelete(item);
+    setDeleteConfirmOpen(true);
   };
 
-  const handleView = (item: any) => {
+  // CONFIRM delete
+  const confirmDelete = () => {
+    if (!budgetToDelete) return;
+
+    router.delete(`/budget/${budgetToDelete.id}`, {
+      onSuccess: () => {
+        setDeleteConfirmOpen(false);
+        setBudgetToDelete(null);
+      },
+      onError: () => {
+        setDeleteConfirmOpen(false);
+        setBudgetToDelete(null);
+        setErrorModal(true);
+      },
+    });
+  };
+
+  const handleView = (item: BudgetDto) => {
     setSelectedBudget(item);
     setViewModalOpen(true);
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: BudgetDto) => {
     setSelectedBudget(item);
     setEditModalOpen(true);
   };
 
-  // ⭐ NEW: HANDLE UPDATE FROM EDIT MODAL (VERY IMPORTANT)
-  const handleUpdateBudget = (updated: any) => {
+  // UPDATE existing budget – show success modal on success
+  const handleUpdateBudget = (updated: EditBudgetPayload) => {
     router.put(`/budget/${updated.id}`, updated, {
-        onSuccess: () => {
-            setEditModalOpen(false);
-        },
-        onError: () => {
-            alert("Error updating budget.");
-        },
+      onSuccess: () => {
+        setEditModalOpen(false);
+        setUpdateSuccessModal(true);
+      },
+      onError: () => {
+        setErrorModal(true);
+      },
     });
-};
-
-
+  };
 
   return (
     <AppLayout>
@@ -246,7 +281,7 @@ export default function Index() {
             <DialogTitle>Enter Budget Amount</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 mt-2">
+          <div className="mt-2 space-y-4">
             <div className="grid gap-1.5">
               <Label htmlFor="budgetAmountModal">Budget Amount</Label>
               <Input
@@ -267,7 +302,7 @@ export default function Index() {
         </DialogContent>
       </Dialog>
 
-      {/* Success Modal */}
+      {/* Create Success Modal */}
       <Dialog open={successModal} onOpenChange={setSuccessModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -282,18 +317,64 @@ export default function Index() {
         </DialogContent>
       </Dialog>
 
+      {/* Update Success Modal */}
+      <Dialog open={updateSuccessModal} onOpenChange={setUpdateSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Budget Updated</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            The budget has been updated successfully.
+          </p>
+          <DialogFooter>
+            <Button onClick={() => setUpdateSuccessModal(false)}>OK</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Error Modal */}
       <Dialog open={errorModal} onOpenChange={setErrorModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Error Saving Budget</DialogTitle>
+            <DialogTitle>Error</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            There was an issue saving your budget. Please check your entries and try again.
+            There was an issue processing your request. Please check your
+            entries and try again.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setErrorModal(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Budget</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete{" "}
+            <span className="font-semibold">
+              {budgetToDelete?.budget_title || budgetToDelete?.title}
+            </span>
+            ? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteConfirmOpen(false);
+                setBudgetToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -311,7 +392,7 @@ export default function Index() {
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         data={selectedBudget}
-        onSave={handleUpdateBudget}   // ⭐ FIXED
+        onSave={handleUpdateBudget}
       />
     </AppLayout>
   );

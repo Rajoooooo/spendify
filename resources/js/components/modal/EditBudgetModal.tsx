@@ -16,11 +16,23 @@ interface Budget {
     lineItems: LineItem[];
 }
 
+// This is what we send back to the parent on save
+export type EditBudgetPayload = {
+    id: number;
+    title: string;
+    amount: number;
+    balance: number;
+    lineItems: {
+        Item_title: string;
+        amount: number;
+    }[];
+};
+
 interface Props {
     open: boolean;
     onClose: () => void;
     data: Budget | null;
-    onSave: (updated: Budget) => void;
+    onSave: (updated: EditBudgetPayload) => void;
 }
 
 // FUNCTION TO REMOVE .00 OR TRAILING ZEROS
@@ -47,22 +59,24 @@ export default function EditBudgetModal({ open, onClose, data, onSave }: Props) 
 
     // Load selected budget
     useEffect(() => {
-        if (data) {
-            const used = data.lineItems.reduce(
-                (sum, item) => sum + Number(item.amount),
-                0
-            );
+        if (!data) return;
 
-            setForm({
-                title: data.title,
-                amount: cleanAmount(data.amount),
-                lineItems: data.lineItems.map((i) => ({
-                    Item_title: i.Item_title,
-                    amount: cleanAmount(i.amount),
-                })),
-                balance: data.amount - used,
-            });
-        }
+        const used = (data.lineItems ?? []).reduce(
+            (sum, item) => sum + Number(item.amount),
+            0
+        );
+
+        const initialTitle = data.budget_title || data.title || "";
+
+        setForm({
+            title: initialTitle,
+            amount: cleanAmount(data.amount),
+            lineItems: (data.lineItems ?? []).map((i) => ({
+                Item_title: i.Item_title,
+                amount: cleanAmount(i.amount),
+            })),
+            balance: data.amount - used,
+        });
     }, [data]);
 
     if (!open || !data) return null;
@@ -76,8 +90,8 @@ export default function EditBudgetModal({ open, onClose, data, onSave }: Props) 
     };
 
     // UNIVERSAL UPDATE (title, amount)
-    const update = (field: string, value: any) => {
-        const cleaned = cleanAmount(value);
+    const update = (field: "title" | "amount", value: any) => {
+        const cleaned = field === "amount" ? cleanAmount(value) : value;
 
         setForm((prev) => ({
             ...prev,
@@ -91,7 +105,7 @@ export default function EditBudgetModal({ open, onClose, data, onSave }: Props) 
 
     // UPDATE ONE LINE ITEM
     const updateLineItem = (index: number, field: keyof LineItem, value: any) => {
-        const cleaned = cleanAmount(value);
+        const cleaned = field === "amount" ? cleanAmount(value) : value;
 
         const updated = [...form.lineItems];
         updated[index] = { ...updated[index], [field]: cleaned };
@@ -123,9 +137,9 @@ export default function EditBudgetModal({ open, onClose, data, onSave }: Props) 
         });
     };
 
-    // FINAL SUBMIT
+    // FINAL SUBMIT – shape must match EditBudgetPayload
     const handleSubmit = () => {
-        onSave({
+        const payload: EditBudgetPayload = {
             id: data.id,
             title: form.title,
             amount: Number(form.amount),
@@ -134,39 +148,42 @@ export default function EditBudgetModal({ open, onClose, data, onSave }: Props) 
                 Item_title: i.Item_title,
                 amount: Number(i.amount),
             })),
-        });
+        };
 
+        onSave(payload);
         onClose();
     };
 
+    const displayTitle = data.budget_title || data.title;
+
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-            <div className="bg-white p-10 rounded-2xl w-[900px] shadow-2xl border border-gray-300">
-                <h2 className="text-3xl font-bold mb-6 text-gray-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="w-full max-w-3xl rounded-2xl border border-gray-300 bg-white p-6 shadow-2xl sm:p-8 lg:p-10 dark:border-gray-800 dark:bg-gray-950">
+                <h2 className="mb-6 text-2xl font-bold text-gray-900 sm:text-3xl dark:text-gray-50">
                     Edit Budget –{" "}
                     <span className="font-semibold">
-                        {data.budget_title || data.title}
+                        {displayTitle}
                     </span>
                 </h2>
 
                 {/* TITLE + AMOUNT */}
-                <div className="flex gap-6 mb-7">
-                    <div className="w-1/2">
-                        <label className="font-semibold text-gray-900">
+                <div className="mb-7 flex flex-col gap-4 sm:flex-row">
+                    <div className="w-full sm:w-1/2">
+                        <label className="font-semibold text-gray-900 dark:text-gray-100">
                             Budget Title
                         </label>
                         <input
                             type="text"
-                            placeholder={data.budget_title || data.title}
+                            placeholder={displayTitle}
                             value={form.title}
                             onChange={(e) => update("title", e.target.value)}
-                            className="w-full border border-gray-300 px-4 py-2.5 rounded-lg mt-1 bg-white text-gray-900 focus:ring-2 focus:ring-black"
+                            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-black dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-gray-200"
                         />
                     </div>
 
                     {/* TOTAL BUDGET AMOUNT */}
-                    <div className="w-1/2">
-                        <label className="font-semibold text-gray-900">
+                    <div className="w-full sm:w-1/2">
+                        <label className="font-semibold text-gray-900 dark:text-gray-100">
                             Total Budget Amount
                         </label>
                         <input
@@ -174,50 +191,52 @@ export default function EditBudgetModal({ open, onClose, data, onSave }: Props) 
                             placeholder={String(data.amount)}
                             value={form.amount}
                             onChange={(e) => update("amount", e.target.value)}
-                            className="w-full border border-gray-300 px-4 py-2.5 rounded-lg mt-1 bg-white text-gray-900 focus:ring-2 focus:ring-black"
+                            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-black dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-gray-200"
                         />
                     </div>
                 </div>
 
                 {/* BALANCE */}
-                <div className="bg-gray-50 p-5 border border-gray-300 rounded-xl mb-6">
-                    <p className="text-sm text-gray-600">Remaining Balance</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                <div className="mb-6 rounded-xl border border-gray-300 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-900">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Remaining Balance
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
                         ₱{form.balance.toLocaleString()}
                     </p>
                 </div>
 
                 {/* LINE ITEMS */}
-                <div className="bg-gray-50 p-6 border border-gray-300 rounded-2xl mb-5">
-                    <div className="flex justify-between items-center mb-4">
-                        <p className="text-xl font-semibold text-gray-900">
+                <div className="mb-5 rounded-2xl border border-gray-300 bg-gray-50 p-4 sm:p-6 dark:border-gray-700 dark:bg-gray-900">
+                    <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-50">
                             Line Items
                         </p>
 
                         <button
                             onClick={addNewLineItem}
-                            className="px-4 py-2 bg-black text-white rounded-lg text-sm"
+                            className="rounded-lg bg-black px-4 py-2 text-sm text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
                         >
                             + Add Item
                         </button>
                     </div>
 
-                    <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+                    <div className="max-h-[350px] space-y-4 overflow-y-auto pr-1 sm:pr-2">
                         {form.lineItems.map((item, index) => (
                             <div
                                 key={index}
-                                className="bg-white border border-gray-300 rounded-xl p-5 shadow-sm relative"
+                                className="relative rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-950"
                             >
                                 <button
                                     onClick={() => removeLineItem(index)}
-                                    className="absolute right-3 top-3 text-red-500 hover:text-red-700"
+                                    className="absolute right-3 top-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                 >
-                                    <Trash2 size={20} />
+                                    <Trash2 size={18} />
                                 </button>
 
-                                <div className="flex gap-4">
-                                    <div className="w-2/3">
-                                        <label className="text-sm font-medium text-gray-800">
+                                <div className="flex flex-col gap-4 sm:flex-row">
+                                    <div className="w-full sm:w-2/3">
+                                        <label className="text-sm font-medium text-gray-800 dark:text-gray-100">
                                             Item Title
                                         </label>
                                         <input
@@ -231,13 +250,13 @@ export default function EditBudgetModal({ open, onClose, data, onSave }: Props) 
                                                     e.target.value
                                                 )
                                             }
-                                            className="w-full border border-gray-300 px-3 py-2 rounded-lg mt-1 bg-white text-gray-900 focus:ring-2 focus:ring-black"
+                                            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-black dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-gray-200"
                                         />
                                     </div>
 
                                     {/* ITEM AMOUNT */}
-                                    <div className="w-1/3">
-                                        <label className="text-sm font-medium text-gray-800">
+                                    <div className="w-full sm:w-1/3">
+                                        <label className="text-sm font-medium text-gray-800 dark:text-gray-100">
                                             Amount
                                         </label>
                                         <input
@@ -251,7 +270,7 @@ export default function EditBudgetModal({ open, onClose, data, onSave }: Props) 
                                                     e.target.value
                                                 )
                                             }
-                                            className="w-full border border-gray-300 px-3 py-2 rounded-lg mt-1 bg-white text-gray-900 focus:ring-2 focus:ring-black"
+                                            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-black dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-gray-200"
                                         />
                                     </div>
                                 </div>
@@ -261,17 +280,17 @@ export default function EditBudgetModal({ open, onClose, data, onSave }: Props) 
                 </div>
 
                 {/* BUTTONS */}
-                <div className="flex justify-end gap-4 mt-8">
+                <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
                     <button
                         onClick={handleSubmit}
-                        className="px-6 py-2.5 bg-black text-white rounded-lg text-sm"
+                        className="rounded-lg bg-black px-6 py-2.5 text-sm text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
                     >
                         Save Changes
                     </button>
 
                     <button
                         onClick={onClose}
-                        className="px-6 py-2.5 bg-gray-600 text-white rounded-lg text-sm"
+                        className="rounded-lg bg-gray-600 px-6 py-2.5 text-sm text-white hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600"
                     >
                         Cancel
                     </button>

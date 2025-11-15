@@ -15,17 +15,19 @@ import {
 import { MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+type BudgetTableProps = {
+  items?: any[];
+  onView?: (item: any) => void;
+  onEdit?: (item: any) => void;
+  onDelete?: (item: any) => void;
+};
+
 export default function BudgetTable({
   items = [],
   onView,
   onEdit,
   onDelete,
-}: {
-  items?: any[];
-  onView?: any;
-  onEdit?: any;
-  onDelete?: any;
-}) {
+}: BudgetTableProps) {
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -44,133 +46,167 @@ export default function BudgetTable({
     }).format(Number(value));
   };
 
+  const totalBudget = items.reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0
+  );
+  const totalBalance = items.reduce(
+    (sum, item) => sum + (Number(item.balance) || 0),
+    0
+  );
+
   return (
-    <Card className="rounded-2xl border border-gray-200 shadow-sm bg-white/90 backdrop-blur-sm">
-      <CardHeader className="pb-3 border-b border-gray-100">
-        <CardTitle className="text-lg font-semibold text-gray-800">
-          Budget Overview
-        </CardTitle>
+    <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-gray-200 pb-3 dark:border-gray-800">
+        <div>
+          <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+            Budget Overview
+          </CardTitle>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {items.length === 0
+              ? "No budgets recorded yet."
+              : `${items.length} budget${items.length > 1 ? "s" : ""} • ₱${formatAmount(
+                  totalBudget
+                )} total • ₱${formatAmount(totalBalance)} remaining`}
+          </p>
+        </div>
       </CardHeader>
 
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse">
-            <thead className="bg-gray-50/80 backdrop-blur-sm">
-              <tr>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 text-left">
+          <table className="min-w-full border-collapse text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-900">
+              <tr className="border-b border-gray-200 dark:border-gray-800">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
                   Date
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 text-left">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
                   Title
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 text-left">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
                   Budget
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 text-left">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
                   Balance
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 text-center">
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
                   Action
                 </th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {items.length === 0 ? (
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-6 text-sm text-center text-gray-500"
+                    className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400"
                   >
-                    No data available.
+                    No data available. Create a budget to see it listed here.
                   </td>
                 </tr>
               ) : (
-                items.map((item, index) => (
-                  <tr
-                    key={index}
-                    className={cn(
-                      "transition-all hover:bg-amber-50/60",
-                      index % 2 === 0 && "bg-white"
-                    )}
-                  >
-                    <td className="px-5 py-3 text-sm text-gray-700 whitespace-nowrap align-middle">
-                      {formatDate(item.date)}
-                    </td>
+                items.map((item, index) => {
+                  const balance = Number(item.balance) || 0;
+                  const title = item.title || item.budget_title || "Untitled";
 
-                    <td className="px-5 py-3 text-sm align-middle">
-                      <div className="text-lg font-extrabold text-amber-700 drop-shadow-sm tracking-wide">
-                        {item.title}
-                      </div>
-                      {item.budget_title && (
-                        <div className="text-xs text-gray-500 mt-1 tracking-wide">
-                          {item.budget_title}
-                        </div>
+                  return (
+                    <tr
+                      key={index}
+                      className={cn(
+                        "transition-colors",
+                        index % 2 === 0
+                          ? "bg-white dark:bg-gray-950"
+                          : "bg-gray-50 dark:bg-gray-900",
+                        "hover:bg-gray-100 dark:hover:bg-gray-800"
                       )}
-                    </td>
+                    >
+                      {/* Date */}
+                      <td className="whitespace-nowrap px-4 py-3 align-middle text-gray-700 dark:text-gray-300">
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {formatDate(item.date)}
+                        </span>
+                      </td>
 
-                    <td className="px-5 py-3 text-sm text-gray-700 align-middle">
-                      <span className="font-semibold text-green-600">
-                        ₱{formatAmount(item.amount)}
-                      </span>
-                    </td>
+                      {/* Title */}
+                      <td className="px-4 py-3 align-middle">
+                        <div className="text-sm font-semibold tracking-wide text-gray-900 dark:text-gray-50">
+                          {title}
+                        </div>
+                      </td>
 
-                    <td className="px-5 py-3 text-sm text-gray-700 align-middle">
-                      <span className="font-semibold text-blue-600">
-                        ₱{formatAmount(item.balance)}
-                      </span>
-                    </td>
+                      {/* Budget */}
+                      <td className="px-4 py-3 text-right align-middle">
+                        <span className="font-semibold text-gray-900 dark:text-gray-50">
+                          ₱{formatAmount(item.amount)}
+                        </span>
+                      </td>
 
-                    <td className="px-5 py-3 text-sm text-gray-700 text-center align-middle">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 mx-auto flex justify-center items-center"
+                      {/* Balance */}
+                      <td className="px-4 py-3 text-right align-middle">
+                        <span className="font-semibold text-gray-900 dark:text-gray-50">
+                          ₱{formatAmount(balance)}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3 text-center align-middle">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="mx-auto flex h-8 w-8 items-center justify-center p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-32 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
                           >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                            <DropdownMenuItem
+                              className="cursor-pointer text-gray-800 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-800"
+                              onClick={() =>
+                                onView?.({
+                                  ...item,
+                                  lineItems: item.lineItems,
+                                })
+                              }
+                            >
+                              View
+                            </DropdownMenuItem>
 
-                        <DropdownMenuContent align="center" className="w-32">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              onView?.({
-                                ...item,
-                                lineItems: item.lineItems, // ✅ Added (ensures modal has line items)
-                              })
-                            }
-                          >
-                            View
-                          </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer text-gray-800 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-800"
+                              onClick={() =>
+                                onEdit?.({
+                                  ...item,
+                                  lineItems: item.lineItems,
+                                })
+                              }
+                            >
+                              Edit
+                            </DropdownMenuItem>
 
-                          <DropdownMenuItem
-                            onClick={() =>
-                              onEdit?.({
-                                ...item,
-                                lineItems: item.lineItems, // ✅ Added
-                              })
-                            }
-                          >
-                            Edit
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            onClick={() =>
-                              onDelete?.({
-                                ...item,
-                                lineItems: item.lineItems, // ✅ Added
-                              })
-                            }
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))
+                            <DropdownMenuItem
+                              className="cursor-pointer text-gray-800 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-800"
+                              onClick={() =>
+                                onDelete?.({
+                                  ...item,
+                                  lineItems: item.lineItems,
+                                })
+                              }
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
