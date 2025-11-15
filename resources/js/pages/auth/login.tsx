@@ -5,7 +5,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import AuthLayout from '@/layouts/auth-layout';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
@@ -23,22 +22,35 @@ export default function Login({
     canRegister,
 }: LoginProps) {
     return (
-        <AuthLayout
-            title="Log in to your account"
-            description="Enter your email and password below to log in"
-        >
+        <div className="min-h-screen flex items-center justify-center bg-white px-4">
             <Head title="Log in" />
 
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+            {/* Container */}
+            <div className="w-full max-w-md space-y-8">
+
+                {/* Header */}
+                <div className="text-center">
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                        Welcome to <span className="text-green-600">Spendify</span>
+                    </h1>
+                    <p className="text-gray-600 text-sm mt-1">
+                        A smart and simple budget tracker to manage your finances.
+                    </p>
+                </div>
+
+                {/* Form */}
+                <Form
+                    {...store.form()}
+                    resetOnSuccess={['password']}
+                    className="space-y-6"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            {/* Email */}
+                            <div className="grid gap-1">
+                                <Label htmlFor="email" className="text-sm font-medium">
+                                    Email address
+                                </Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -48,23 +60,29 @@ export default function Login({
                                     tabIndex={1}
                                     autoComplete="email"
                                     placeholder="email@example.com"
+                                    className="rounded-md border-gray-300 focus:ring-green-600"
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
-                            <div className="grid gap-2">
+                            {/* Password */}
+                            <div className="grid gap-1">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
+                                    <Label htmlFor="password" className="text-sm font-medium">
+                                        Password
+                                    </Label>
+
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
-                                            className="ml-auto text-sm"
+                                            className="ml-auto text-sm text-green-600 hover:text-green-700"
                                             tabIndex={5}
                                         >
                                             Forgot password?
                                         </TextLink>
                                     )}
                                 </div>
+
                                 <Input
                                     id="password"
                                     type="password"
@@ -73,22 +91,23 @@ export default function Login({
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Password"
+                                    className="rounded-md border-gray-300 focus:ring-green-600"
                                 />
                                 <InputError message={errors.password} />
                             </div>
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
+                            {/* Remember me */}
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="remember" name="remember" tabIndex={3} />
+                                <Label htmlFor="remember" className="text-sm">
+                                    Remember me
+                                </Label>
                             </div>
 
+                            {/* Login button */}
                             <Button
                                 type="submit"
-                                className="mt-4 w-full"
+                                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium rounded-md shadow-sm transition-all duration-200 disabled:opacity-70"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
@@ -96,25 +115,31 @@ export default function Login({
                                 {processing && <Spinner />}
                                 Log in
                             </Button>
-                        </div>
 
-                        {canRegister && (
-                            <div className="text-center text-sm text-muted-foreground">
-                                Don't have an account?{' '}
-                                <TextLink href={register()} tabIndex={5}>
-                                    Sign up
-                                </TextLink>
-                            </div>
-                        )}
-                    </>
+                            {/* Register */}
+                            {canRegister && (
+                                <div className="text-center text-sm text-gray-600">
+                                    Don’t have an account?{' '}
+                                    <TextLink
+                                        href={register()}
+                                        className="text-green-600 hover:text-green-700 font-medium"
+                                        tabIndex={5}
+                                    >
+                                        Sign up
+                                    </TextLink>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </Form>
+
+                {/* Status message */}
+                {status && (
+                    <div className="text-center text-sm font-medium text-green-600">
+                        {status}
+                    </div>
                 )}
-            </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
-        </AuthLayout>
+            </div>
+        </div>
     );
 }

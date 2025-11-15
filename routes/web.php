@@ -11,9 +11,12 @@ Route::get('/', fn () => Inertia::render('welcome', [
 ]))->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
 
-     Route::prefix('budget')->name('budget.')->group(function () {
+    Route::get('dashboard', function () {
+        return redirect()->route('expense.index');
+    })->name('dashboard');
+
+    Route::prefix('budget')->name('budget.')->group(function () {
         Route::get('/', [BudgetController::class, 'index'])->name('index');
         Route::post('/store', [BudgetController::class, 'store'])->name('store');
         Route::get('/{budget}', [BudgetController::class, 'show'])->name('show');
@@ -26,11 +29,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/', [ExpenseController::class, 'storeExpense'])->name('store');
         Route::put('/{expense}', [ExpenseController::class, 'updateExpense'])->name('update');
         Route::delete('/{expense}', [ExpenseController::class, 'destroyExpense'])->name('destroy');
+
         Route::post('/category', [ExpenseController::class, 'storeCategory'])->name('category.store');
         Route::put('/category/{category}', [ExpenseController::class, 'updateCategory'])->name('category.update');
         Route::delete('/category/{category}', [ExpenseController::class, 'destroyCategory'])->name('category.destroy');
+
         Route::put('/category/{category}/archive', [ExpenseController::class, 'archiveCategory'])->name('category.archive');
         Route::put('/category/{category}/unarchive', [ExpenseController::class, 'unarchiveCategory'])->name('category.unarchive');
+
         Route::get('/categories', [ExpenseController::class, 'categories'])->name('category.index');
     });
 });
