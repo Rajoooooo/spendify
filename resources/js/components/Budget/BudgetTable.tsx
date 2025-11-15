@@ -6,6 +6,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -28,6 +29,8 @@ export default function BudgetTable({
   onEdit,
   onDelete,
 }: BudgetTableProps) {
+  const [query, setQuery] = React.useState("");
+
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -55,6 +58,16 @@ export default function BudgetTable({
     0
   );
 
+  // Filter by title / budget_title
+  const filteredItems = React.useMemo(() => {
+    if (!query.trim()) return items;
+    const q = query.toLowerCase();
+    return items.filter((item) => {
+      const title = (item.title || item.budget_title || "").toLowerCase();
+      return title.includes(q);
+    });
+  }, [items, query]);
+
   return (
     <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950">
       <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-gray-200 pb-3 dark:border-gray-800">
@@ -69,6 +82,16 @@ export default function BudgetTable({
                   totalBudget
                 )} total • ₱${formatAmount(totalBalance)} remaining`}
           </p>
+        </div>
+
+        {/* Search bar */}
+        <div className="w-full max-w-xs">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search budgets..."
+            className="h-9 text-sm bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+          />
         </div>
       </CardHeader>
 
@@ -105,8 +128,17 @@ export default function BudgetTable({
                     No data available. Create a budget to see it listed here.
                   </td>
                 </tr>
+              ) : filteredItems.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400"
+                  >
+                    No budgets match your search.
+                  </td>
+                </tr>
               ) : (
-                items.map((item, index) => {
+                filteredItems.map((item, index) => {
                   const balance = Number(item.balance) || 0;
                   const title = item.title || item.budget_title || "Untitled";
 
