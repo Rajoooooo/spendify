@@ -39,11 +39,6 @@ import AppLogoIcon from './app-logo-icon';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
         title: 'Expense',
         href: '/expense',
         icon: HandCoins,
