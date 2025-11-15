@@ -18,6 +18,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+// Modals
+import ViewBudgetModal from "@/components/modal/ViewBudgetModal";
+import EditBudgetModal from "@/components/modal/EditBudgetModal";
+
 type LineItem = { id: string; title: string; amount: string };
 
 interface BudgetPageProps {
@@ -27,6 +31,7 @@ interface BudgetPageProps {
     amount: number;
     balance: number;
     date: string;
+    lineItems?: any[];
   }[];
 }
 
@@ -39,9 +44,15 @@ export default function Index() {
   const [initialBudget, setInitialBudget] = React.useState<number>(0);
   const [budget, setBudget] = React.useState<number>(0);
   const [budgetTitle, setBudgetTitle] = React.useState<string>("");
+
   const [modalOpen, setModalOpen] = React.useState(false);
   const [successModal, setSuccessModal] = React.useState(false);
   const [errorModal, setErrorModal] = React.useState(false);
+
+  // VIEW + EDIT MODALS
+  const [viewModalOpen, setViewModalOpen] = React.useState(false);
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [selectedBudget, setSelectedBudget] = React.useState<any>(null);
 
   // --- calculate remaining balance
   const updateBudget = React.useCallback(() => {
@@ -71,7 +82,7 @@ export default function Index() {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
   }
 
-  // --- modal handlers
+  // Modal handlers
   function onEnterBudget() {
     setModalOpen(true);
   }
@@ -120,7 +131,6 @@ export default function Index() {
     });
   }
 
-  // --- input handlers
   function handleBudgetChange(e: React.ChangeEvent<HTMLInputElement>) {
     const inputValue = e.target.value.replace(/[^\d.]/g, "");
     const parsedValue = parseFloat(inputValue) || 0;
@@ -143,6 +153,30 @@ export default function Index() {
     }
   };
 
+  const handleView = (item: any) => {
+    setSelectedBudget(item);
+    setViewModalOpen(true);
+  };
+
+  const handleEdit = (item: any) => {
+    setSelectedBudget(item);
+    setEditModalOpen(true);
+  };
+
+  // ⭐ NEW: HANDLE UPDATE FROM EDIT MODAL (VERY IMPORTANT)
+  const handleUpdateBudget = (updated: any) => {
+    router.put(`/budget/${updated.id}`, updated, {
+        onSuccess: () => {
+            setEditModalOpen(false);
+        },
+        onError: () => {
+            alert("Error updating budget.");
+        },
+    });
+};
+
+
+
   return (
     <AppLayout>
       <Head title="Budget" />
@@ -164,7 +198,6 @@ export default function Index() {
               </p>
             </div>
 
-            {/* Budget Title under Line Items */}
             <div className="mb-3">
               <Label htmlFor="budgetTitle">Budget Title</Label>
               <Input
@@ -197,11 +230,16 @@ export default function Index() {
         </div>
 
         <div className="mt-6">
-          <BudgetTable items={budgets} onDelete={handleDelete} />
+          <BudgetTable
+            items={budgets}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         </div>
       </div>
 
-      {/* --- Enter Budget Modal (no title input) --- */}
+      {/* Enter Budget Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -229,7 +267,7 @@ export default function Index() {
         </DialogContent>
       </Dialog>
 
-      {/* --- Success Modal --- */}
+      {/* Success Modal */}
       <Dialog open={successModal} onOpenChange={setSuccessModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -244,15 +282,14 @@ export default function Index() {
         </DialogContent>
       </Dialog>
 
-      {/* --- Error Modal --- */}
+      {/* Error Modal */}
       <Dialog open={errorModal} onOpenChange={setErrorModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Error Saving Budget</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            There was an issue saving your budget. Please check your entries and
-            try again.
+            There was an issue saving your budget. Please check your entries and try again.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setErrorModal(false)}>
@@ -261,6 +298,21 @@ export default function Index() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* VIEW MODAL */}
+      <ViewBudgetModal
+        open={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        data={selectedBudget}
+      />
+
+      {/* EDIT MODAL */}
+      <EditBudgetModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        data={selectedBudget}
+        onSave={handleUpdateBudget}   // ⭐ FIXED
+      />
     </AppLayout>
   );
 }

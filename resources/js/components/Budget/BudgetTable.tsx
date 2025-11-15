@@ -99,7 +99,6 @@ export default function BudgetTable({
                     </td>
 
                     <td className="px-5 py-3 text-sm align-middle">
-                      {/* Highlighted title */}
                       <div className="text-lg font-extrabold text-amber-700 drop-shadow-sm tracking-wide">
                         {item.title}
                       </div>
@@ -122,7 +121,6 @@ export default function BudgetTable({
                       </span>
                     </td>
 
-                    {/* Centered 3-dot menu */}
                     <td className="px-5 py-3 text-sm text-gray-700 text-center align-middle">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -134,14 +132,38 @@ export default function BudgetTable({
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
+
                         <DropdownMenuContent align="center" className="w-32">
-                          <DropdownMenuItem onClick={() => onView?.(item)}>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              onView?.({
+                                ...item,
+                                lineItems: item.lineItems, // ✅ Added (ensures modal has line items)
+                              })
+                            }
+                          >
                             View
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onEdit?.(item)}>
+
+                          <DropdownMenuItem
+                            onClick={() =>
+                              onEdit?.({
+                                ...item,
+                                lineItems: item.lineItems, // ✅ Added
+                              })
+                            }
+                          >
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onDelete?.(item)}>
+
+                          <DropdownMenuItem
+                            onClick={() =>
+                              onDelete?.({
+                                ...item,
+                                lineItems: item.lineItems, // ✅ Added
+                              })
+                            }
+                          >
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
