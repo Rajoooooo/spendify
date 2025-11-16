@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy PHP app to Azure Web App - castrovenalspendify1130
+name: Build and deploy Laravel app to Azure Web App - castrovenalspendify1130
 
 on:
   push:
@@ -16,42 +16,62 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      # -----------------------------
+      # PHP + Composer
+      # -----------------------------
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          tools: composer
+          extensions: mbstring, intl, pdo_mysql, bcmath, openssl
+          coverage: none
 
-      # Install PHP dependencies
       - name: Install Composer dependencies
         run: |
           composer install --no-dev --prefer-dist --optimize-autoloader
 
-      # Setup Node.js
+      # -----------------------------
+      # Node + Vite build
+      # -----------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      # Install NPM dependencies
       - name: Install NPM dependencies
-        run: npm ci
+        run: npm install
 
-      # Build frontend assets (Vite)
-      - name: Build assets
+      - name: Build frontend assets (Vite)
         run: npm run build
 
-      # Upload ONLY necessary files for deployment
-      - name: Upload artifact for deployment job
+      # -----------------------------
+      # Laravel optimizations
+      # -----------------------------
+      - name: Laravel optimizations
+        run: |
+          php artisan config:clear
+          php artisan route:clear
+          php artisan view:clear
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+
+      # -----------------------------
+      # Upload artifact for deployment
+      # -----------------------------
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: php-app
+          name: laravel-app
           path: |
             .
             !node_modules/
             !tests/
+            !storage/logs/*
+            !storage/framework/cache/data/*
 
   deploy:
     runs-on: ubuntu-latest
@@ -61,11 +81,11 @@ jobs:
       contents: read
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: php-app
-      
+          name: laravel-app
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -75,7 +95,6 @@ jobs:
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
         with:
           app-name: 'castrovenalspendify1130'
           slot-name: 'Production'
